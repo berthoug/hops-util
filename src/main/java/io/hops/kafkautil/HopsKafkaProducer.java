@@ -46,19 +46,28 @@ public class HopsKafkaProducer extends HopsKafkaProcess {
    * @param messageFields
    */
   public void produce(Map<String, Object> messageFields) {
-    //create the avro message
-    GenericData.Record avroRecord = new GenericData.Record(schema);
-    for (Map.Entry<String, Object> message : messageFields.entrySet()) {
-      //TODO: Check that messageFields are in avro record
-      avroRecord.put(message.getKey(), message.getValue());
+        //create the avro message
+        GenericData.Record avroRecord = new GenericData.Record(schema);
+        for (Map.Entry<String, Object> message : messageFields.entrySet()) {
+            //TODO: Check that messageFields are in avro record
+            avroRecord.put(message.getKey(), message.getValue());
+        }
+        produceRecord(avroRecord);
+    }
+    
+    public boolean produce(GenericData.Record avroRecord) {
+        if(avroRecord.getSchema().equals(schema)) {
+            produceRecord(avroRecord);
+            return true;
+        }
+        return false;
     }
 
-    byte[] bytes = recordInjection.apply(avroRecord);
-    ProducerRecord<String, byte[]> record = new ProducerRecord<>(topic, bytes);
-    producer.send(record);
-
-    logger.log(Level.INFO, "Producer sent message: {0}", messageFields);
-  }
+    private void produceRecord(GenericRecord avroRecord) {
+        byte[] bytes = recordInjection.apply(avroRecord);
+        ProducerRecord<String, byte[]> record = new ProducerRecord<>(topic, bytes);
+        producer.send(record);
+    }
 }
 
 /*
