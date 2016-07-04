@@ -106,6 +106,18 @@ public class HopsKafkaUtil {
     this.trustStore = trustStore;
 
   }
+  
+  public void setup(String jSessionId, int projectId, String topicName, String domain, String brokerEndpoint, String restEndpoint, 
+          String keyStore, String trustStore) {
+      this.jSessionId = jSessionId;
+      this.projectId = projectId;
+      this.topicName = topicName;
+      this.domain = domain;
+      this.brokerEndpoint = brokerEndpoint;
+      this.restEndpoint = restEndpoint;
+      this.keyStore = keyStore;
+      this.trustStore = trustStore;
+  }
 
   public static HopsKafkaUtil getInstance() {
     if (instance == null) {
