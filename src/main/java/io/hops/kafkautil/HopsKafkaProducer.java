@@ -56,7 +56,7 @@ public class HopsKafkaProducer extends HopsKafkaProcess {
         produceRecord(avroRecord);
     }
     
-    public boolean produce(GenericData.Record avroRecord) {
+    public boolean produce(GenericRecord avroRecord) {
         if(avroRecord.getSchema().equals(schema)) {
             produceRecord(avroRecord);
             return true;
