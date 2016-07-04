@@ -12,6 +12,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.avro.Schema;
 
 /**
  *
@@ -67,6 +68,10 @@ public class HopsKafkaProducer extends HopsKafkaProcess {
         byte[] bytes = recordInjection.apply(avroRecord);
         ProducerRecord<String, byte[]> record = new ProducerRecord<>(topic, bytes);
         producer.send(record);
+    }
+    
+    public Schema getSchema() {
+        return schema;
     }
 }
 
