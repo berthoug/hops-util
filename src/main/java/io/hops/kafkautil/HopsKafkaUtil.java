@@ -3,12 +3,12 @@ package io.hops.kafkautil;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.cookie.BasicClientCookie;
@@ -114,7 +114,7 @@ public class HopsKafkaUtil {
       this.topicName = topicName;
       this.domain = domain;
       this.brokerEndpoint = brokerEndpoint;
-      this.restEndpoint = restEndpoint;
+      this.restEndpoint = restEndpoint + "/hopsworks/api/project";
       this.keyStore = keyStore;
       this.trustStore = trustStore;
   }
