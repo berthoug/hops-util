@@ -135,6 +135,10 @@ public class HopsKafkaUtil {
           SchemaNotFoundException {
     return new HopsKafkaProducer(topic);
   }
+  
+  public HopsKafkaProducer getHopsKafkaProducer(String topic, long lingerDelay) throws SchemaNotFoundException {
+      return new HopsKafkaProducer(topic, lingerDelay);
+  }
 
   /**
    * @Deprecated.
