@@ -40,7 +40,7 @@ public class NHopsKafkaUtil {
         if (versionId > 0) {
             uri += "/" + versionId;
         }
-
+        logger.info("getting schema:" + uri);
         HttpResponse response = httpGet(jSessionId, domain, uri);
         if (response == null) {
             throw new SchemaNotFoundException("Could not reach schema endpoint");
@@ -55,6 +55,7 @@ public class NHopsKafkaUtil {
 
     public static String getSchemaByName(String domain, String restEndpoint, String jSessionId, int projectId, String schemaName, int schemaVersion) throws SchemaNotFoundException {
         String uri = restEndpoint + "/" + projectId + "/kafka/showSchema/" + schemaName + "/" + schemaVersion;
+        logger.info("getting schema:" + uri);
         HttpResponse response = httpGet(jSessionId, domain, uri);
         if (response == null) {
             throw new SchemaNotFoundException("Could not reach schema endpoint");
