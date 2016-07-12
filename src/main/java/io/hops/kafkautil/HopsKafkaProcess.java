@@ -22,8 +22,7 @@ public abstract class HopsKafkaProcess {
   public HopsKafkaProcess(KafkaProcessType type, String topic) throws SchemaNotFoundException{
     this.topic = topic;
     Schema.Parser parser = new Schema.Parser();
-    schema = parser.parse(hopsKafkaUtil.getSchema());
-    
+    String stringSchema = NHopsKafkaUtil.getSchemaByTopic(hopsKafkaUtil, topic);
+    schema = parser.parse(stringSchema);
   }
-
 }

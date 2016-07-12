@@ -23,9 +23,37 @@ import org.json.JSONObject;
  * @author Alex Ormenisan <aaor@kth.se>
  */
 public class NHopsKafkaUtil {
+
     private static final Logger logger = Logger.getLogger(HopsKafkaUtil.class.getName());
+
+    public static String getSchemaByTopic(HopsKafkaUtil config, String topicName) throws SchemaNotFoundException {
+        return getSchemaByTopic(config.getDomain(), config.getRestEndpoint(), config.getjSessionId(), config.getProjectId(), topicName);
+    }
     
-    public static String getSchema(String domain, String restEndpoint, String jSessionId, int projectId, String schemaName, int schemaVersion) throws SchemaNotFoundException {
+    public static String getSchemaByTopic(String domain, String restEndpoint, String jSessionId, int projectId, String topicName) throws SchemaNotFoundException {
+        return getSchemaByTopic(domain, restEndpoint, jSessionId, projectId, topicName, Integer.MIN_VALUE);
+    }
+
+    public static String getSchemaByTopic(String domain, String restEndpoint, String jSessionId, int projectId, String topicName, int versionId) throws SchemaNotFoundException {
+
+        String uri = restEndpoint + "/" + projectId + "/kafka/schema/" + topicName;
+        if (versionId > 0) {
+            uri += "/" + versionId;
+        }
+
+        HttpResponse response = httpGet(jSessionId, domain, uri);
+        if (response == null) {
+            throw new SchemaNotFoundException("Could not reach schema endpoint");
+        } else if (response.getStatusLine().getStatusCode() != 200) {
+            throw new SchemaNotFoundException(response.getStatusLine().getStatusCode(),
+                    "Schema is not found");
+        }
+        String schema = extractSchema(response);
+        return schema;
+
+    }
+
+    public static String getSchemaByName(String domain, String restEndpoint, String jSessionId, int projectId, String schemaName, int schemaVersion) throws SchemaNotFoundException {
         String uri = restEndpoint + "/" + projectId + "/kafka/showSchema/" + schemaName + "/" + schemaVersion;
         HttpResponse response = httpGet(jSessionId, domain, uri);
         if (response == null) {
@@ -37,7 +65,7 @@ public class NHopsKafkaUtil {
         String schema = extractSchema(response);
         return schema;
     }
-    
+
     private static HttpResponse httpGet(String jSessionId, String domain, String uri) {
         //Setup the REST client to retrieve the schema
         BasicCookieStore cookieStore = new BasicCookieStore();
@@ -57,7 +85,7 @@ public class NHopsKafkaUtil {
         }
         return response;
     }
-    
+
     private static String extractSchema(HttpResponse response) {
         StringBuilder result = new StringBuilder();
         try {
@@ -73,6 +101,12 @@ public class NHopsKafkaUtil {
         //Extract fields from json
         JSONObject json = new JSONObject(result.toString());
         String schema = json.getString("contents");
+        schema = tempHack(schema);
         return schema;
+    }
+    
+    private static String tempHack(String schema) {
+        int actualSchema = schema.indexOf('{');
+        return schema.substring(actualSchema);
     }
 }
