@@ -130,7 +130,8 @@ public class HopsKafkaUtil {
     }
 
     /**
-     * @Deprecated. @return
+     * @Deprecated. 
+     * @return
      */
     protected Properties getProducerConfig() {
         Properties props = new Properties();
@@ -153,7 +154,8 @@ public class HopsKafkaUtil {
     }
 
     /**
-     * @Deprecated. @return
+     * Returns configuration for Kafka Consumer.
+     * @return 
      */
     protected Properties getConsumerConfig() {
         Properties props = new Properties();

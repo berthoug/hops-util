@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package io.hops.kafkautil;
 
 import java.io.BufferedReader;
@@ -40,7 +35,7 @@ public class NHopsKafkaUtil {
         if (versionId > 0) {
             uri += "/" + versionId;
         }
-        logger.info("getting schema:" + uri);
+        logger.log(Level.FINE, "getting schema:{0}", uri);
         HttpResponse response = httpGet(jSessionId, domain, uri);
         if (response == null) {
             throw new SchemaNotFoundException("Could not reach schema endpoint");
@@ -55,7 +50,7 @@ public class NHopsKafkaUtil {
 
     public static String getSchemaByName(String domain, String restEndpoint, String jSessionId, int projectId, String schemaName, int schemaVersion) throws SchemaNotFoundException {
         String uri = restEndpoint + "/" + projectId + "/kafka/showSchema/" + schemaName + "/" + schemaVersion;
-        logger.info("getting schema:" + uri);
+        logger.log(Level.FINE, "getting schema:{0}", uri);
         HttpResponse response = httpGet(jSessionId, domain, uri);
         if (response == null) {
             throw new SchemaNotFoundException("Could not reach schema endpoint");
