@@ -51,89 +51,9 @@ public class HopsConsumer extends HopsProcess implements Runnable {
       super(HopsProcessType.CONSUMER, topic, schema);
   }
 
-  /**
-   * Start thread for consuming Kafka messages.
-   *
-   * @param path
-   */
-  public void consume(String path) {
-    this.consume = true;
-    //new Thread(this).start();
-    Properties props = HopsUtil.getKafkaProperties().getConsumerConfig();
-    consumer = new KafkaConsumer<>(props);
-    //Subscribe to the Kafka topic
-    consumer.subscribe(Collections.singletonList(topic));
-    if (callback) {
-      while (consume) {
-        ConsumerRecords<Integer, String> records = consumer.poll(1000);
-        //synchronized(kafkaRecords){
-        //Get the records
-        for (ConsumerRecord<Integer, String> record : records) {
-          //Convert the record using the schema
-          Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.
-                  toBinary(schema);
-          GenericRecord genericRecord = recordInjection.invert(record.value().
-                  getBytes()).get();
-          System.out.println("Consumer put into queue:" + record.value());
-          try {
-            messages.put(record.value());
-          } catch (InterruptedException ex) {
-            Logger.getLogger(HopsConsumer.class.getName()).
-                    log(Level.SEVERE, null, ex);
-          }
-          System.out.println("Consumer received message:" + genericRecord);
-        }
-        if(records.isEmpty()) {
-            try {
-              Thread.sleep(100);
-            } catch (InterruptedException ex) {
-              logger.log(Level.SEVERE, "Error while consuming records", ex);
-            }
-        }
-      }
-    } else {
-      while (consume) {
-        ConsumerRecords<Integer, String> records = consumer.poll(1000);
-        //synchronized(kafkaRecords){
-        //Get the records
-        for (ConsumerRecord<Integer, String> record : records) {
-          //Convert the record using the schema
-          Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.
-                  toBinary(schema);
-          GenericRecord genericRecord = recordInjection.invert(record.value().
-                  getBytes()).get();
-          consumed.append(record.value()).append("\n");
-          System.out.println("Consumer received message:" + genericRecord);
-        }
-        if(records.isEmpty()) {
-            try {
-              Thread.sleep(100);
-            } catch (InterruptedException ex) {
-              logger.log(Level.SEVERE, "Error while consuming records", ex);
-            }
-        }
-      }
-      consumer.close();
-//      if (path != null && consumed.length() > 0) {
-//        try {
-//          Configuration hdConf = new Configuration();
-//          Path hdPath = new org.apache.hadoop.fs.Path(path);
-//          FileSystem hdfs = hdPath.getFileSystem(hdConf);
-//          FSDataOutputStream stream = hdfs.create(hdPath);
-//          stream.write(consumed.toString().getBytes());
-//          stream.flush();
-//          stream.close();
-//
-//        } catch (IOException ex) {
-//          Logger.getLogger(HopsConsumer.class.getName()).
-//                  log(Level.SEVERE, null, ex);
-//        }
-//      }
-    }
-  }
-
   public void consume() {
-    consume(null);
+    consume = true;
+    new Thread(this).start();
   }
 
 //  public void consume(BlockingQueue messages) {
@@ -158,11 +78,10 @@ public class HopsConsumer extends HopsProcess implements Runnable {
 
   @Override
   public void run() {
-    Properties props = HopsUtil.getInstance().getKafkaProperties().getConsumerConfig();
+    Properties props = HopsUtil.getKafkaProperties().getConsumerConfig();
     consumer = new KafkaConsumer<>(props);
     //Subscribe to the Kafka topic
     consumer.subscribe(Collections.singletonList(topic));
-    if (callback) {
       while (consume) {
         ConsumerRecords<Integer, String> records = consumer.poll(1000);
         //synchronized(kafkaRecords){
@@ -173,12 +92,16 @@ public class HopsConsumer extends HopsProcess implements Runnable {
                   toBinary(schema);
           GenericRecord genericRecord = recordInjection.invert(record.value().
                   getBytes()).get();
-          System.out.println("Consumer put into queue:" + record.value());
-          try {
-            messages.put(record.value());
-          } catch (InterruptedException ex) {
-            Logger.getLogger(HopsConsumer.class.getName()).
-                    log(Level.SEVERE, null, ex);
+          if(callback) {
+            System.out.println("Consumer put into queue:" + record.value());
+            try {
+              messages.put(record.value());
+            } catch (InterruptedException ex) {
+              Logger.getLogger(HopsConsumer.class.getName()).
+                      log(Level.SEVERE, null, ex);
+            }
+          } else {
+            consumed.append(record.value()).append("\n");
           }
           System.out.println("Consumer received message:" + genericRecord);
         }
@@ -190,29 +113,6 @@ public class HopsConsumer extends HopsProcess implements Runnable {
             }
         }
       }
-    } else {
-      while (consume) {
-        ConsumerRecords<Integer, String> records = consumer.poll(1000);
-        //synchronized(kafkaRecords){
-        //Get the records
-        for (ConsumerRecord<Integer, String> record : records) {
-          //Convert the record using the schema
-          Injection<GenericRecord, byte[]> recordInjection = GenericAvroCodecs.
-                  toBinary(schema);
-          GenericRecord genericRecord = recordInjection.invert(record.value().
-                  getBytes()).get();
-          consumed.append(record.value()).append("\n");
-          System.out.println("Consumer received message:" + genericRecord);
-        }
-        if(records.isEmpty()) {
-            try {
-              Thread.sleep(100);
-            } catch (InterruptedException ex) {
-              logger.log(Level.SEVERE, "Error while consuming records", ex);
-            }
-        }
-      }
-    }
   }
 
   @Override
