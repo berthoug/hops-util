@@ -9,15 +9,14 @@ import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
 import io.hops.util.flink.FlinkConsumer;
 import io.hops.util.flink.FlinkProducer;
-import io.hops.util.spark.SparkProducer;
 import io.hops.util.spark.SparkConsumer;
+import io.hops.util.spark.SparkProducer;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -281,16 +280,6 @@ public class HopsUtil {
 
   public static KafkaProperties getKafkaProperties() {
     return new KafkaProperties();
-  }
-
-  public static HopsConsumer getHopsConsumer(String topic) throws
-          SchemaNotFoundException {
-    return new HopsConsumer(topic);
-  }
-
-  public static HopsProducer getHopsProducer(String topic) throws
-          SchemaNotFoundException {
-    return new HopsProducer(topic);
   }
 
   public static FlinkConsumer getFlinkConsumer(String topic) {

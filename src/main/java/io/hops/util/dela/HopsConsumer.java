@@ -1,17 +1,21 @@
-package io.hops.util;
+package io.hops.util.dela;
 
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-
+import io.hops.util.HopsProcess;
+import io.hops.util.HopsProcessType;
+import io.hops.util.HopsUtil;
+import io.hops.util.SchemaNotFoundException;
 import java.util.Collections; 
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 
 /**
  * Utility class to consume messages from the Kafka service.
@@ -35,6 +39,16 @@ public class HopsConsumer extends HopsProcess implements Runnable {
     //Get Consumer properties
     //Properties props = HopsUtil.getInstance().getConsumerConfig();
     //consumer = new KafkaConsumer<>(props);
+  }
+  
+  /**
+   * No exception in constructors - using Helper static methods to get schema to get rid of exceptions
+   * @param topic
+   * @param schema
+   * @param lingerDelay 
+   */
+  HopsConsumer(String topic, Schema schema) {
+      super(HopsProcessType.CONSUMER, topic, schema);
   }
 
   /**
@@ -69,10 +83,12 @@ public class HopsConsumer extends HopsProcess implements Runnable {
           }
           System.out.println("Consumer received message:" + genericRecord);
         }
-        try {
-          Thread.sleep(100);
-        } catch (InterruptedException ex) {
-          logger.log(Level.SEVERE, "Error while consuming records", ex);
+        if(records.isEmpty()) {
+            try {
+              Thread.sleep(100);
+            } catch (InterruptedException ex) {
+              logger.log(Level.SEVERE, "Error while consuming records", ex);
+            }
         }
       }
     } else {
@@ -89,10 +105,12 @@ public class HopsConsumer extends HopsProcess implements Runnable {
           consumed.append(record.value()).append("\n");
           System.out.println("Consumer received message:" + genericRecord);
         }
-        try {
-          Thread.sleep(100);
-        } catch (InterruptedException ex) {
-          logger.log(Level.SEVERE, "Error while consuming records", ex);
+        if(records.isEmpty()) {
+            try {
+              Thread.sleep(100);
+            } catch (InterruptedException ex) {
+              logger.log(Level.SEVERE, "Error while consuming records", ex);
+            }
         }
       }
       consumer.close();
@@ -164,10 +182,12 @@ public class HopsConsumer extends HopsProcess implements Runnable {
           }
           System.out.println("Consumer received message:" + genericRecord);
         }
-        try {
-          Thread.sleep(100);
-        } catch (InterruptedException ex) {
-          logger.log(Level.SEVERE, "Error while consuming records", ex);
+        if(records.isEmpty()) {
+            try {
+              Thread.sleep(100);
+            } catch (InterruptedException ex) {
+              logger.log(Level.SEVERE, "Error while consuming records", ex);
+            }
         }
       }
     } else {
@@ -184,10 +204,12 @@ public class HopsConsumer extends HopsProcess implements Runnable {
           consumed.append(record.value()).append("\n");
           System.out.println("Consumer received message:" + genericRecord);
         }
-        try {
-          Thread.sleep(100);
-        } catch (InterruptedException ex) {
-          logger.log(Level.SEVERE, "Error while consuming records", ex);
+        if(records.isEmpty()) {
+            try {
+              Thread.sleep(100);
+            } catch (InterruptedException ex) {
+              logger.log(Level.SEVERE, "Error while consuming records", ex);
+            }
         }
       }
     }

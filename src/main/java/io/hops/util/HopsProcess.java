@@ -14,10 +14,22 @@ public abstract class HopsProcess implements Serializable{
   private static final Logger logger = Logger.
           getLogger(HopsProcess.class.getName());
   public HopsProcessType type;
-  final String topic;
-  final Schema schema;
+  protected final String topic;
+  protected final Schema schema;
   private final HopsUtil hopsKafkaUtil = HopsUtil.getInstance();
 
+  /**
+   * No exception in constructors - using Helper static methods to get schema to get rid of exceptions
+   * @param topic
+   * @param schema
+   * @param lingerDelay 
+   */
+  public HopsProcess(HopsProcessType type, String topic, Schema schema) {
+      this.type = type;
+      this.topic = topic;
+      this.schema = schema;
+  }
+  
   /**
    *
    * @param type

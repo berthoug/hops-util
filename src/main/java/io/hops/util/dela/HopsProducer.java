@@ -1,11 +1,15 @@
-package io.hops.util;
+package io.hops.util.dela;
 
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
+import io.hops.util.HopsProcess;
+import io.hops.util.HopsProcessType;
+import io.hops.util.HopsUtil;
+import io.hops.util.SchemaNotFoundException;
 import java.util.Map;
 import java.util.Properties;
-import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -23,8 +27,6 @@ public class HopsProducer extends HopsProcess {
 
   private final KafkaProducer<String, byte[]> producer;
   private final Injection<GenericRecord, byte[]> recordInjection;
-  private GenericData.Record avroRecord;
-  private ProducerRecord<String, byte[]> record;
 
   /**
    * Create a Producer to stream messages to Kafka.
@@ -32,13 +34,33 @@ public class HopsProducer extends HopsProcess {
    * @param topic
    * @throws SchemaNotFoundException
    */
-  public HopsProducer(String topic) throws SchemaNotFoundException {
+  HopsProducer(String topic, long lingerDelay) throws SchemaNotFoundException {
     super(HopsProcessType.PRODUCER, topic);
     Properties props = HopsUtil.getKafkaProperties().
             defaultProps();
     props.put(ProducerConfig.CLIENT_ID_CONFIG, "HopsProducer");
+    props.put(ProducerConfig.LINGER_MS_CONFIG, lingerDelay); 
     producer = new KafkaProducer<>(props);
-
+    recordInjection = GenericAvroCodecs.toBinary(schema);
+  }
+  
+  public HopsProducer(String topic) throws SchemaNotFoundException {
+    this(topic, 0);
+  }
+  
+  /**
+   * No exception in constructors - using Helper static methods to get schema to get rid of exceptions
+   * @param topic
+   * @param schema
+   * @param lingerDelay 
+   */
+  HopsProducer(String topic, Schema schema, long lingerDelay) {
+      super(HopsProcessType.PRODUCER, topic, schema);
+      Properties props = HopsUtil.getKafkaProperties().
+            defaultProps();
+    props.put(ProducerConfig.CLIENT_ID_CONFIG, "HopsProducer");
+    props.put(ProducerConfig.LINGER_MS_CONFIG, lingerDelay); 
+    producer = new KafkaProducer<>(props);
     recordInjection = GenericAvroCodecs.toBinary(schema);
   }
 
@@ -47,20 +69,30 @@ public class HopsProducer extends HopsProcess {
    * <p>
    * @param messageFields
    */
-  public void produce(Map<String, String> messageFields) {
-    //create the avro message
-    avroRecord = new GenericData.Record(schema);
-    for (Map.Entry<String, String> message : messageFields.entrySet()) {
-      //TODO: Check that messageFields are in avro record
-      avroRecord.put(message.getKey(), message.getValue());
+    public void produce(Map<String, Object> messageFields) {
+        //create the avro message
+        GenericData.Record avroRecord = new GenericData.Record(schema);
+        for (Map.Entry<String, Object> message : messageFields.entrySet()) {
+            //TODO: Check that messageFields are in avro record
+            avroRecord.put(message.getKey(), message.getValue());
+        }
+        produce(avroRecord);
     }
 
-    byte[] bytes = recordInjection.apply(avroRecord);
-    record = new ProducerRecord<>(topic, bytes);
-    producer.send(record);
+    public void produce(GenericRecord avroRecord) {
+        byte[] bytes = recordInjection.apply(avroRecord);
+        produce(bytes);
+    }
 
-    logger.log(Level.INFO, "Producer sent message: {0}", messageFields);
-  }
+    public void produce(byte[] byteRecord) {
+        ProducerRecord<String, byte[]> record = new ProducerRecord<>(topic, byteRecord);
+        producer.send(record);
+    }
+    
+    public byte[] prepareRecord(GenericRecord avroRecord) {
+        byte[] bytes = recordInjection.apply(avroRecord);
+        return bytes;
+    }
 
   @Override
   public void close() {
