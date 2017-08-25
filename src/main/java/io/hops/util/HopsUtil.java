@@ -1,11 +1,6 @@
 package io.hops.util;
 
 import com.google.common.io.ByteStreams;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.twitter.bijection.Injection;
 import com.twitter.bijection.avro.GenericAvroCodecs;
 import io.hops.util.flink.FlinkConsumer;
@@ -24,8 +19,13 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ws.rs.core.Cookie;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.net.util.Base64;
@@ -35,6 +35,8 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.streaming.StreamingQueryException;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.filter.LoggingFilter;
 import org.json.JSONObject;
 
 /**
@@ -260,7 +262,7 @@ public class HopsUtil {
    * @param params
    * @return
    */
-  public static synchronized void setup(Map<String, String> params) {
+  public static synchronized void setup(Map<String, String> params) throws CredentialsNotFoundException {
     projectId = Integer.parseInt(params.get(
         HopsUtil.KAFKA_PROJECTID_ENV_VAR));
     brokerEndpoint = params.get(HopsUtil.KAFKA_BROKERADDR_ENV_VAR);
@@ -274,8 +276,10 @@ public class HopsUtil {
     }
     keyStore = params.get(K_CERTIFICATE_ENV_VAR);
     trustStore = params.get(T_CERTIFICATE_ENV_VAR);
-//    keystorePwd = params.get(KEYSTORE_PWD_ENV_VAR);
-//    truststorePwd = params.get(TRUSTSTORE_PWD_ENV_VAR);
+    projectUser = "flink__meb10000";
+    JSONObject pw = getCertPw();
+    keystorePwd = pw.getString(KEYSTORE_VAL_ENV_VAR);
+    truststorePwd = pw.getString(TRUSTSTORE_VAL_ENV_VAR);
   }
 
   /**
@@ -509,13 +513,12 @@ public class HopsUtil {
         + "/schema";
     LOG.log(Level.FINE, "Getting schema for topic:{0} from uri:{1}", new String[]{topicName, uri});
 
-    ClientConfig config = new DefaultClientConfig();
-    Client client = Client.create(config);
-    WebResource service = client.resource(uri);
-    final ClientResponse blogResponse = service.type(
-        MediaType.APPLICATION_JSON).post(ClientResponse.class, json.
-            toString());
-    final String blog = blogResponse.getEntity(String.class);
+    ClientConfig config = new ClientConfig().register( LoggingFilter.class ) ;
+    Client client = ClientBuilder.newClient(config);
+    WebTarget webTarget = client.target(uri);
+    Invocation.Builder invocationBuilder =  webTarget.request().accept(MediaType.APPLICATION_JSON);
+    final Response blogResponse = invocationBuilder.post(Entity.entity(json.toString(),  MediaType.APPLICATION_JSON));
+    final String blog = blogResponse.readEntity(String.class);
     //Extract fields from json
     json = new JSONObject(blog);
     String schema = json.getString("contents");
@@ -527,9 +530,10 @@ public class HopsUtil {
 
     String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/" + HOPSWORKS_REST_APPSERVICE + "/mail";
 
-    ClientConfig config = new DefaultClientConfig();
-    Client client = Client.create(config);
-    WebResource service = client.resource(uri);
+    ClientConfig config = new ClientConfig().register( LoggingFilter.class ) ;
+    Client client = ClientBuilder.newClient(config);
+    WebTarget webTarget = client.target(uri);
+    
     JSONObject json = new JSONObject();
     json.append("dest", dest);
     json.append("subject", subject);
@@ -541,8 +545,9 @@ public class HopsUtil {
       LOG.log(Level.SEVERE, null, ex);
       throw new CredentialsNotFoundException("Could not initialize HopsUtil properties.");
     }
-    ClientResponse blogResponse = service.type(MediaType.APPLICATION_JSON).post(ClientResponse.class, json.toString());
-    final String response = blogResponse.getEntity(String.class);
+    Invocation.Builder invocationBuilder =  webTarget.request(MediaType.APPLICATION_JSON);
+    Response blogResponse = invocationBuilder.post(Entity.entity(json.toString(),  MediaType.APPLICATION_JSON));
+    final String response = blogResponse.readEntity(String.class);
 
     return response;
 
@@ -553,17 +558,14 @@ public class HopsUtil {
     try {
       String uri = HopsUtil.getRestEndpoint() + "/" + HOPSWORKS_REST_RESOURCE + "/" + HOPSWORKS_REST_APPSERVICE
           + "/certpw";
-      ClientConfig config = new DefaultClientConfig();
-      Client client = Client.create(config);
-      WebResource service = client.resource(uri);
-//      Cookie cookie = new Cookie("SESSION", sessionId);
+      ClientConfig config = new ClientConfig().register(LoggingFilter.class);
+      Client client = ClientBuilder.newClient(config);
+      WebTarget webTarget = client.target(uri);
 
-      final ClientResponse blogResponse = service.queryParam("keyStore", keystoreEncode())
-          .queryParam("projectUser", projectUser)
-          .type(MediaType.TEXT_PLAIN)
-//          .cookie(cookie)
-          .get(ClientResponse.class);
-      final String response = blogResponse.getEntity(String.class);
+      Invocation.Builder invocationBuilder = webTarget.queryParam("keyStore", keystoreEncode()).
+          queryParam("projectUser", projectUser).request(MediaType.APPLICATION_JSON);
+      Response blogResponse = invocationBuilder.get();
+      final String response = blogResponse.readEntity(String.class);
       JSONObject json = new JSONObject(response);
       return json;
     } catch (IOException ex) {

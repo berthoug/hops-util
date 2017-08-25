@@ -1,11 +1,6 @@
 package io.hops.util.dela;
 
 import com.google.common.io.ByteStreams;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
 import io.hops.util.HopsUtil;
 import io.hops.util.SchemaNotFoundException;
 import java.io.File;
@@ -13,9 +8,17 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.apache.avro.Schema;
 import org.apache.commons.net.util.Base64;
+import org.glassfish.jersey.client.ClientConfig;
+import org.glassfish.jersey.filter.LoggingFilter;
 import org.json.JSONObject;
 
 public class DelaHelper {
@@ -33,7 +36,7 @@ public class DelaHelper {
     Schema.Parser parser = new Schema.Parser();
     Schema schema = parser.parse(stringSchema);
     return new DelaConsumer(topicName, schema);
-  }
+}
 
   public static DelaProducer getHopsProducer(int projectId, String topicName, String brokerEndpoint, String restEndpoint,
     String keyStore, String trustStore, String keystorePwd, String truststorePwd, long lingerDelay)
@@ -66,7 +69,7 @@ public class DelaHelper {
 
     String uri = HopsUtil.getRestEndpoint() + "/schema";
     logger.info("getting schema:" + uri);
-    ClientResponse response = postResponse(uri, json.toString());
+    Response response = postJsonResponse(uri, json.toString());
     if (response == null) {
       throw new SchemaNotFoundException("Could not reach schema endpoint");
     } else if (response.getStatus() != 200) {
@@ -91,22 +94,24 @@ public class DelaHelper {
     }
   }
 
-  private static ClientResponse getResponse(String uri) {
-    ClientConfig config = new DefaultClientConfig();
-    Client client = Client.create(config);
-    WebResource service = client.resource(uri);
-    return service.type(MediaType.APPLICATION_JSON).get(ClientResponse.class);
+  private static Response getResponse(String uri) {
+    ClientConfig config = new ClientConfig().register( LoggingFilter.class ) ;
+    Client client = ClientBuilder.newClient(config);
+    WebTarget webTarget = client.target(uri);
+    Invocation.Builder invocationBuilder =  webTarget.request().accept(MediaType.APPLICATION_JSON);
+    return invocationBuilder.get();
   }
 
-  private static ClientResponse postResponse(String uri, String payload) {
-    ClientConfig config = new DefaultClientConfig();
-    Client client = Client.create(config);
-    WebResource service = client.resource(uri);
-    return service.type(MediaType.APPLICATION_JSON).post(ClientResponse.class, payload);
+  private static Response postJsonResponse(String uri, String payload) {
+    ClientConfig config = new ClientConfig().register( LoggingFilter.class ) ;
+    Client client = ClientBuilder.newClient(config);
+    WebTarget webTarget = client.target(uri);
+    Invocation.Builder invocationBuilder =  webTarget.request().accept(MediaType.APPLICATION_JSON);
+    return invocationBuilder.post(Entity.entity(payload, MediaType.APPLICATION_JSON));
   }
 
-  private static String extractSchema(ClientResponse response) {
-    String content = response.getEntity(String.class);
+  private static String extractSchema(Response response) {
+    String content = response.readEntity(String.class);
     //Extract fields from json
     JSONObject json = new JSONObject(content);
     String schema = json.getString("contents");
